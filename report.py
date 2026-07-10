@@ -18,6 +18,16 @@ SDR_NAME_MAP = {
     "Eshan Aggarwal": "Indrani",
 }
 
+# Partner report configuration (Deals module). Partners are shown in this order.
+PARTNERS = ["Rubix", "InCorp"]
+MEETING_STAGES = {"Meeting Done - SQL", "Meeting Done - Not SQL Yet"}
+CLOSED_STAGES = {
+    "Closed Won",
+    "Closed Lost",
+    "Closed Lost to Competition",
+    "Payment Recived",
+}
+
 
 @dataclass
 class Lead:
@@ -69,6 +79,61 @@ class Lead:
         return self.raw.get("Lead_Status") == MEETING_SET_STATUS
 
 
+@dataclass
+class Deal:
+    """A single Zoho CRM deal record with typed access to the fields we use."""
+
+    raw: dict
+
+    @staticmethod
+    def _time(value):
+        return datetime.fromisoformat(value) if value else None
+
+    @staticmethod
+    def _date(value):
+        return datetime.fromisoformat(value).date() if value else None
+
+    @property
+    def partner(self):
+        return self.raw.get("Partner")
+
+    @property
+    def stage(self):
+        return self.raw.get("Stage")
+
+    @property
+    def sql(self):
+        return self.raw.get("SQL")
+
+    @property
+    def amount(self):
+        return self.raw.get("Amount") or 0
+
+    @property
+    def closing_date(self):
+        return self._date(self.raw.get("Closing_Date"))
+
+    @property
+    def modified_at(self):
+        return self._time(self.raw.get("Modified_Time"))
+
+    @property
+    def created_at(self):
+        return self._time(self.raw.get("Created_Time"))
+
+    @property
+    def is_open(self):
+        return self.stage not in CLOSED_STAGES
+
+    @property
+    def is_meeting_done(self):
+        return self.stage in MEETING_STAGES
+
+    @property
+    def is_sql(self):
+        return self.sql == "Yes"
+
+
 class ZohoClient:
     """Authenticates against Zoho CRM (India DC) and fetches lead records."""
 
@@ -77,6 +142,10 @@ class ZohoClient:
     LEAD_FIELDS = (
         "Full_Name,Owner,Lead_Status,Remarks,"
         "Created_Time,Created_By,Modified_Time,Modified_By"
+    )
+    DEAL_FIELDS = (
+        "Deal_Name,Partner,Stage,SQL,Amount,Closing_Date,"
+        "Modified_Time,Created_Time,Owner"
     )
 
     def __init__(self, client_id, client_secret, refresh_token):
@@ -109,14 +178,14 @@ class ZohoClient:
             raise SystemExit(f"Zoho token error: {data}")
         return data["access_token"]
 
-    def fetch_leads(self):
+    def _fetch_records(self, module, fields):
         headers = {"Authorization": f"Zoho-oauthtoken {self._access_token()}"}
         # page_token is required for deep pagination; page numbers cap at 2000.
-        params = {"fields": self.LEAD_FIELDS, "per_page": 200}
+        params = {"fields": fields, "per_page": 200}
         records = []
         while True:
             r = requests.get(
-                f"{self.API_BASE}/crm/v7/Leads",
+                f"{self.API_BASE}/crm/v7/{module}",
                 headers=headers,
                 params=params,
                 timeout=30,
@@ -130,11 +199,17 @@ class ZohoClient:
             if not info.get("more_records") or not info.get("next_page_token"):
                 break
             params = {
-                "fields": self.LEAD_FIELDS,
+                "fields": fields,
                 "per_page": 200,
                 "page_token": info["next_page_token"],
             }
-        return [Lead(rec) for rec in records]
+        return records
+
+    def fetch_leads(self):
+        return [Lead(rec) for rec in self._fetch_records("Leads", self.LEAD_FIELDS)]
+
+    def fetch_deals(self):
+        return [Deal(rec) for rec in self._fetch_records("Deals", self.DEAL_FIELDS)]
 
 
 class WeeklyReport:
@@ -240,6 +315,91 @@ class WeeklyReport:
         return "\n".join(lines).rstrip()
 
 
+def format_inr(value):
+    """Format an amount in Indian lakh/crore notation (e.g. 7675000 -> '₹76.75L')."""
+    value = value or 0
+    if value >= 1e7:
+        return f"\u20b9{value / 1e7:.2f}Cr"
+    if value >= 1e5:
+        return f"\u20b9{value / 1e5:.2f}L"
+    return f"\u20b9{value:,.0f}"
+
+
+def deals_count(n):
+    """Pluralize a deal count (e.g. 1 -> '1 deal', 2 -> '2 deals')."""
+    return f"{n} deal" if n == 1 else f"{n} deals"
+
+
+class PartnerReport:
+    """Aggregates a single partner's deal stats and renders its Slack section."""
+
+    def __init__(self, partner, deals, start, end, today):
+        self.partner = partner
+        self.deals = [d for d in deals if d.partner == partner]
+        self.start = start
+        self.end = end
+        self.today = today
+
+    @staticmethod
+    def trailing_7_days(now=None):
+        """Trailing 7-day window: now - 7d -> now (IST)."""
+        now = now or datetime.now(IST)
+        return now - timedelta(days=7), now
+
+    def _modified_in_window(self, deal):
+        when = deal.modified_at
+        return when is not None and self.start <= when <= self.end
+
+    def _pipeline(self, days):
+        hi = self.today + timedelta(days=days)
+        selected = [
+            d
+            for d in self.deals
+            if d.is_open
+            and d.closing_date is not None
+            and self.today <= d.closing_date <= hi
+        ]
+        return len(selected), sum(d.amount for d in selected)
+
+    def build_section(self):
+        meetings = [
+            d for d in self.deals if d.is_meeting_done and self._modified_in_window(d)
+        ]
+        sql_moves = [
+            d for d in self.deals if d.is_sql and self._modified_in_window(d)
+        ]
+        n30, v30 = self._pipeline(30)
+        n90, v90 = self._pipeline(90)
+
+        meetings_value = sum(d.amount for d in meetings)
+        sql_value = sum(d.amount for d in sql_moves)
+
+        return [
+            f"*{self.partner}*",
+            f"\u2022 Meetings (last 7 days): *{format_inr(meetings_value)}*  "
+            f"({deals_count(len(meetings))})",
+            f"\u2022 SQL Movement (last 7 days): *{format_inr(sql_value)}*  "
+            f"({deals_count(len(sql_moves))})",
+            f"\u2022 Pipeline \u226430 days: *{format_inr(v30)}*  ({deals_count(n30)})",
+            f"\u2022 Pipeline \u226490 days: *{format_inr(v90)}*  ({deals_count(n90)})",
+        ]
+
+
+def build_partner_message(deals, now=None):
+    now = now or datetime.now(IST)
+    start, end = PartnerReport.trailing_7_days(now)
+    today = now.date()
+    lines = [
+        "*:handshake: Partner Report*",
+        f"_{start:%d %b} \u2013 {end:%d %b %Y}_",
+        "",
+    ]
+    for partner in PARTNERS:
+        lines.extend(PartnerReport(partner, deals, start, end, today).build_section())
+        lines.append("")
+    return "\n".join(lines).rstrip()
+
+
 class SlackNotifier:
     """Posts a message to a Slack Incoming Webhook."""
 
@@ -253,11 +413,17 @@ class SlackNotifier:
         r.raise_for_status()
 
 
+def build_report_message():
+    client = ZohoClient.from_env()
+    if "--partners" in sys.argv or "--rubix" in sys.argv:
+        return build_partner_message(client.fetch_deals())
+    start, end = WeeklyReport.previous_work_week()
+    return WeeklyReport(client.fetch_leads(), start, end).build_message()
+
+
 def main():
     load_dotenv()
-    leads = ZohoClient.from_env().fetch_leads()
-    start, end = WeeklyReport.previous_work_week()
-    message = WeeklyReport(leads, start, end).build_message()
+    message = build_report_message()
     print(message)
 
     if "--dry-run" in sys.argv:

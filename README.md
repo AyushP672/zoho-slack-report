@@ -19,6 +19,48 @@ For the **previous work week (Monday to Friday, weekends excluded)**, per SDR:
 
 Data comes from the Zoho CRM **Leads** module only.
 
+## Partner Report
+
+A second, independent report posts **partner** deal stats from the Zoho CRM **Deals**
+module to the same `#sales` channel every **Thursday at 12:00 PM IST**. It covers
+**Rubix** and **InCorp** as separate subsections in a single message (add more partners
+via the `PARTNERS` list in `report.py`). Run it locally with `python report.py --partners`.
+
+Per partner (filtered by `Partner`), for the **trailing 7 days** (`now - 7d` to `now`):
+
+- **Meetings** — deals in a "Meeting Done" stage (`Meeting Done - SQL` or
+  `Meeting Done - Not SQL Yet`) modified in the window; shows summed `Amount` and count.
+- **SQL Movement** — deals with `SQL == "Yes"` modified in the window; shows summed
+  `Amount` and count.
+
+Plus two point-in-time snapshots (summing `Amount` of open deals by `Closing_Date`):
+
+- **Pipeline ≤30 days** — open deals closing within the next 30 days.
+- **Pipeline ≤90 days** — open deals closing within the next 90 days.
+
+Meetings and SQL Movement use `Modified_Time` as a proxy for "movement" because Zoho
+stores no stage-change or SQL-change timestamp (`Stage_Modified_Time` is null on these
+deals). It reuses the same `SLACK_WEBHOOK` secret as the SDR report.
+
+### Sample Partner Slack message
+
+```
+🤝 Partner Report
+02 Jul – 09 Jul 2026
+
+Rubix
+• Meetings (last 7 days): ₹35.00L  (3 deals)
+• SQL Movement (last 7 days): ₹28.50L  (2 deals)
+• Pipeline ≤30 days: ₹76.75L  (8 deals)
+• Pipeline ≤90 days: ₹2.13Cr  (24 deals)
+
+InCorp
+• Meetings (last 7 days): ₹0  (0 deals)
+• SQL Movement (last 7 days): ₹0  (0 deals)
+• Pipeline ≤30 days: ₹12.50L  (1 deal)
+• Pipeline ≤90 days: ₹27.25L  (2 deals)
+```
+
 ### Sample Slack message
 
 ```
@@ -69,18 +111,23 @@ On each run, `report.py`:
 ## Project structure
 
 ```
-.github/workflows/weekly-report.yml   Scheduled + manual workflow
-report.py                             Main script (Lead, ZohoClient, WeeklyReport, SlackNotifier)
+.github/workflows/weekly-report.yml   Scheduled + manual SDR workflow (Mon 10:00 IST)
+.github/workflows/partner-report.yml  Scheduled + manual partner workflow (Thu 12:00 IST)
+report.py                             Main script (Lead, Deal, ZohoClient, WeeklyReport, PartnerReport, SlackNotifier)
 requirements.txt                      Python dependencies (requests, python-dotenv)
 .gitignore                            Keeps .env and caches out of git
 ```
 
 Code overview (`report.py`):
 
-- `Lead` — wraps a CRM record with typed properties (`created_at`, `modified_by`,
+- `Lead` — wraps a CRM lead record with typed properties (`created_at`, `modified_by`,
   `remarks`, `is_connected`, `is_meeting_set`, ...).
-- `ZohoClient` — auth + paginated `fetch_leads()`.
-- `WeeklyReport` — computes the work-week window and builds the Slack message.
+- `Deal` — wraps a CRM deal record (`partner`, `stage`, `sql`, `amount`, `closing_date`,
+  `is_open`, `is_meeting_done`, `is_sql`, ...).
+- `ZohoClient` — auth + paginated `fetch_leads()` / `fetch_deals()`.
+- `WeeklyReport` — computes the work-week window and builds the SDR Slack message.
+- `PartnerReport` — per-partner trailing-7-day metrics and pipeline snapshots;
+  `build_partner_message()` combines all partners in `PARTNERS` into one message.
 - `SlackNotifier` — posts to the webhook.
 
 ## Local setup
