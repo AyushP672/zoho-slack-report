@@ -22,9 +22,12 @@ Data comes from the Zoho CRM **Leads** module only.
 ## Partner Report
 
 A second, independent report posts **partner** deal stats from the Zoho CRM **Deals**
-module to the same `#sales` channel every **Thursday at 12:00 PM IST**. It covers
-**Rubix** and **InCorp** as separate subsections in a single message (add more partners
-via the `PARTNERS` list in `report.py`). Run it locally with `python report.py --partners`.
+module to the same `#sales` channel every **Thursday at 12:00 PM IST**. It always shows
+every partner in `ALWAYS_INCLUDE_PARTNERS` (AVA, ByteeIT, CNK, Core Bridge, InCorp,
+Qdesq, Rubix) as a separate subsection — rendering zeros for any with no deals in the
+CRM — plus any additional partners found in the data, sorted alphabetically. This gives
+a complete weekly roll-call of what every partner did. Run it locally with
+`python report.py --partners`.
 
 Per partner (filtered by `Partner`), for the **trailing 7 days** (`now - 7d` to `now`):
 
@@ -46,19 +49,27 @@ deals). It reuses the same `SLACK_WEBHOOK` secret as the SDR report.
 
 ```
 🤝 Partner Report
-02 Jul – 09 Jul 2026
+03 Jul – 10 Jul 2026
 
-Rubix
-• Meetings (last 7 days): ₹35.00L  (3 deals)
-• SQL Movement (last 7 days): ₹28.50L  (2 deals)
-• Pipeline ≤30 days: ₹76.75L  (8 deals)
-• Pipeline ≤90 days: ₹2.13Cr  (24 deals)
-
-InCorp
+AVA
 • Meetings (last 7 days): ₹0  (0 deals)
 • SQL Movement (last 7 days): ₹0  (0 deals)
-• Pipeline ≤30 days: ₹12.50L  (1 deal)
-• Pipeline ≤90 days: ₹27.25L  (2 deals)
+• Pipeline ≤30 days: ₹4.00L  (1 deal)
+• Pipeline ≤90 days: ₹9.00L  (2 deals)
+
+ByteeIT
+• Meetings (last 7 days): ₹0  (0 deals)
+• SQL Movement (last 7 days): ₹0  (0 deals)
+• Pipeline ≤30 days: ₹0  (0 deals)
+• Pipeline ≤90 days: ₹0  (0 deals)
+
+... (CNK, Core Bridge, InCorp, Qdesq) ...
+
+Rubix
+• Meetings (last 7 days): ₹0  (0 deals)
+• SQL Movement (last 7 days): ₹2.00L  (1 deal)
+• Pipeline ≤30 days: ₹76.75L  (8 deals)
+• Pipeline ≤90 days: ₹2.13Cr  (24 deals)
 ```
 
 ### Sample Slack message

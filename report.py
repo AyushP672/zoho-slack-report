@@ -18,8 +18,18 @@ SDR_NAME_MAP = {
     "Eshan Aggarwal": "Indrani",
 }
 
-# Partner report configuration (Deals module). Partners are shown in this order.
-PARTNERS = ["Rubix", "InCorp"]
+# Partner report configuration (Deals module). These partners are ALWAYS shown
+# (rendering zeros when they have no deals in the CRM); any additional partners
+# found in the data are included automatically.
+ALWAYS_INCLUDE_PARTNERS = [
+    "AVA",
+    "ByteeIT",
+    "CNK",
+    "Core Bridge",
+    "InCorp",
+    "Qdesq",
+    "Rubix",
+]
 MEETING_STAGES = {"Meeting Done - SQL", "Meeting Done - Not SQL Yet"}
 CLOSED_STAGES = {
     "Closed Won",
@@ -385,6 +395,12 @@ class PartnerReport:
         ]
 
 
+def discover_partners(deals):
+    """All partners to report: the always-include roster unioned with any partner
+    present in the data, sorted alphabetically."""
+    return sorted(set(ALWAYS_INCLUDE_PARTNERS) | {d.partner for d in deals if d.partner})
+
+
 def build_partner_message(deals, now=None):
     now = now or datetime.now(IST)
     start, end = PartnerReport.trailing_7_days(now)
@@ -394,7 +410,10 @@ def build_partner_message(deals, now=None):
         f"_{start:%d %b} \u2013 {end:%d %b %Y}_",
         "",
     ]
-    for partner in PARTNERS:
+    partners = discover_partners(deals)
+    if not partners:
+        lines.append("_No partner deals found._")
+    for partner in partners:
         lines.extend(PartnerReport(partner, deals, start, end, today).build_section())
         lines.append("")
     return "\n".join(lines).rstrip()
