@@ -1,9 +1,9 @@
-name: Partner Report
+name: Weekly Deal Report
 
 on:
   schedule:
-    # 06:30 UTC == 12:00 PM IST, every Thursday
-    - cron: "30 6 * * 4"
+    # 11:30 UTC == 5:00 PM IST, every Friday
+    - cron: "30 11 * * 5"
   workflow_dispatch: {}
 
 jobs:
@@ -15,7 +15,7 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -r requirements.txt
-      - run: python report.py --partners
+      - run: python report.py --deals
         env:
           ZOHO_CLIENT_ID: ${{ secrets.ZOHO_CLIENT_ID }}
           ZOHO_CLIENT_SECRET: ${{ secrets.ZOHO_CLIENT_SECRET }}
