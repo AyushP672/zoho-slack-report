@@ -1,0 +1,277 @@
+Query(COQL) API - Zoho crm
+  URL: https://www.zoho.com/crm/developer/docs/api/v8/COQL-Overview.html
+  Use the CRM Object Query Language (COQL) API to fetch records using this Zoho CRM V8 API. allows users to write SQL-like queries to fetch records from Zoho CRM.
+
+Get Records through COQL Query | Zoho CRM API | V8
+  URL: https://www.zoho.com/crm/developer/docs/api/v8/Get-Records-through-COQL-Query.html
+  # Get Records through a COQL Query
+### Request Details
+#### Sample Request
+```deluge
+CopiedqueryMap = Map();
+queryMap.put("select_query", "select Last_Name, First_Name, Full_Name from Contacts where Last_Name = 'Boyle' and First_Name is not null limit 2");
+response = invokeurl
+[\
+	url :"https://www.zohoapis.com/crm/v8/coql"\
+	type :POST\
+	parameters: queryMap.toString()\
+	connection:"crm_oauth_connection"\
+];
+info response;
+```
+
+```json
+Copied{
+ "select_query" : "select Last_Name, First_Name, Full_Name, Email_Opt_Out
+                  from Contacts
+                  where Email_Opt_Out = 'true'
+                  limit 2"
+}
+```
+
+Search Records | Zoho CRM API | V8
+  URL: https://www.zoho.com/crm/developer/docs/api/v8/search-records.html
+  # Search Records
+### Request Details: _criteria_
+#### Sample Request to Search with criteria
+```curl
+Copiedcurl "https://www.zohoapis.com/crm/v8/Leads/search?criteria=Created_Time%3Abetween%3A2024-02-01T18%3A52%3A56%2B00%3A00%2C2024-02-20T18%3A52%3A56%2B00%3A00"
+-X GET
+-H "Authorization: Zoho-oauthtoken 1000.8cb99dxxxxxxxxxxxxx9be93.9b8xxxxxxxxxxxxxxxf"
+```
+
+#### Sample Response
+```json
+Copied{
+    "data": [\
+        {\
+            "Account": null,\
+            "Company": "ABC",\
+            "Owner": {\
+                "name": "Patricia Boyle",\
+                "id": "554023000000235011",\
+                "email": "p.boyle@zylker.com"\
+            },\
+            "Email": null,\
+            "$currency_symbol": "Rs.",\
+            "$field_states": null,\
+            "$sharing_permission": "full_access",\
+            "Last_Activity_Time": null,\
+            "Industry": null,\
+            "Unsubscribed_Mode": null,\
+            "$process_flow": true,\
+            "Street": null,\
+            "$locked_for_me": false,\
+            "Zip_Code": null,\
+            "id": "554023000003701012",\
+            "$approval": {\
+                "delegate": false,\
+                "approve": false,\
+                "reject": false,\
+                "resubmit": false\
+            },\
+            "Created_Time": "2024-02-19T18:30:23-11:00",\
+            "$wizard_connection_path": null,\
+            "$editable": true,\
+            "City": null,\
+            "No_of_Employees": null,\
+            "Longitude": null,\
+            "Converted_Account": null,\
+            "State": null,\
+            "Country": null,\
+            "Created_By": {\
+                "name": "Patricia Boyle",\
+                "id": "554023000000235011",\
+                "email": "p.boyle@zylker.com"\
+            },\
+            "$zia_owner_assignment": "owner_recommendation_unavailable",\
+            "Secondary_Email": null,\
+            "Annual_Revenue": null,\
+            "Currency_1": null,\
+            "Description": null,\
+            "Rating": null,\
+            "$review_process": {\
+                "approve": false,\
+                "reject": false,\
+                "resubmit": false\
+            },\
+            "Website": null,\
+            "Twitter": null,\
+            "File_Upload": null,\
+            "Associated_Contacts": null,\
+            "Salutation": null,\
+            "Co_Owner": null,\
+            "Full_Name": "John Smith",\
+            "First_Name": "John",\
+            "Lead_Status": null,\
+            "Record_Image": null,\
+            "Converted_Deal": null,\
+            "Modified_By": {\
+                "name": "Patricia Boyle",\
+                "id": "554023000000235011",\
+                "email": "p.boyle@zylker.com"\
+            },\
+            "$review": null,\
+            "Lead_Conversion_Time": null,\
+            "Skype_ID": null,\
+            "Phone": null,\
+            "Image_Upload_1": null,\
+            "Email_Opt_Out": false,\
+            "$zia_visions": null,\
+            "Designation": null,\
+            "Modified_Time": "2024-02-19T18:30:23-11:00",\
+            "$converted_detail": {},\
+            "Unsubscribed_Time": null,\
+            "Converted_Contact": null,\
+            "Mobile": null,\
+            "Record_Status__s": "Available",\
+            "$orchestration": false,\
+            "Last_Name": "Smith",\
+            "Layout": {\
+                "name": "Standard",\
+                "id": "554023000000095055"\
+            },\
+            "$in_merge": false,\
+            "Locked__s": false,\
+            "Lead_Source": null,\
+            "Tag": [],\
+            "Fax": null,\
+            "$approval_state": "approved",\
+            "$pathfinder": false\
+        }\
+    ],
+    "info": {
+        "per_page": 200,
+        "count": 1,
+        "sort_by": "id",
+        "page": 1,
+        "sort_order": "desc",
+        "more_records": false
+    }
+}
+```
+
+### Request Details: _email_
+|  |  |
+|-|-|
+| **Request URL:** | [https://www.zohoapis.com/crm/v8/{module\_api\_name}/search?email={email\_here}](https://www.zohoapis.com/crm/v8/{module\_api\_name}/search?email={email\_here}) |
+
+#### Sample Request to Search by email
+```curl
+Copiedcurl "https://www.zohoapis.com/crm/v8/Leads/search?email=newcrmapi@zoho.com"
+-X GET
+-H "Authorization: Zoho-oauthtoken 1000.8cb99dxxxxxxxxxxxxx9be93.9b8xxxxxxxxxxxxxxxf"
+```
+
+#### Sample Response
+```json
+Copied{
+    "data": [\
+        {\
+            "Account": null,\
+            "Owner": {\
+                "name": "Patricia Boyle",\
+                "id": "3652397000000186017"\
+            },\
+            "Company": null,\
+            "Email": "newcrmapi@zoho.com",\
+            "$currency_symbol": "Rs.",\
+            "Visitor_Score": null,\
+            "Last_Activity_Time": "2019-03-22T11:10:55+05:30",\
+            "Industry": "ASP",\
+            "$converted": false,\
+            "$process_flow": false,\
+            "Street": "Street",\
+            "Zip_Code": "Zip_Code",\
+            "id": "3652397000000415002",\
+            "$approved": true,\
+            "$approval": {\
+                "delegate": false,\
+                "approve": false,\
+                "reject": false,\
+                "resubmit": false\
+            },\
+            "First_Visited_URL": null,\
+            "Days_Visited": null,\
+            "Created_Time": "2019-01-10T13:04:32+05:30",\
+            "$editable": true,\
+            "City": "City",\
+            "No_of_Employees": 100,\
+            "State": "State",\
+            "Country": "Country",\
+            "Last_Visited_Time": null,\
+            "Created_By": {\
+                "name": "Patricia Boyle",\
+                "id": "3652397000000186017"\
+            },\
+            "Annual_Revenue": 100000,\
+            "Secondary_Email": "newcrmapi@zoho.com",\
+            "Description": "Design your own layouts that align your business processes precisely. Assign them to profiles appropriately.",\
+            "Number_Of_Chats": null,\
+            "Rating": "Acquired",\
+            "Website": "crm.zoho.com",\
+            "Twitter": "Twitter",\
+            "Average_Time_Spent_Minutes": null,\
+            "Associated_Contacts": null,\
+            "Salutation": "Mr.",\
+            "First_Name": "First_Name",\
+            "Lead_Status": "Contacted",\
+            "Full_Name": "Mr. First_Name Last_Name",\
+            "Record_Image": null,\
+            "Modified_By": {\
+                "name": "Patricia Boyle",\
+                "id": "3652397000000186017"\
+            },\
+            "Skype_ID": "Skype_ID",\
+            "Phone": "98883434559",\
+            "Email_Opt_Out": false,\
+            "Designation": "Designation",\
+            "Modified_Time": "2019-03-22T11:10:55+05:30",\
+            "$converted_detail": {},\
+            "Mobile": "98883434559",\
+            "Prediction_Score": null,\
+            "First_Visited_Time": null,\
+            "Last_Name": "Last_Name",\
+            "Referrer": null,\
+            "Lead_Source": "Twitter",\
+            "Tag": [],\
+            "Fax": "Fax"\
+        }\
+    ],
+    "info": {
+        "per_page": 200,
+        "count": 1,
+        "page": 1,
+        "more_records": false
+    }
+}
+```
+
+### Other optional parameters
+#### Sample Request: To Search with a Single Criterion
+```curl
+Copiedcurl "https://www.zohoapis.com/crm/v8/Campaigns/search?criteria=Campaign_Name:equals:CRM&fields=Campaign_Name,Type"
+-X GET
+-H "Authorization: Zoho-oauthtoken 1000.8cb99dxxxxxxxxxxxxx9be93.9b8xxxxxxxxxxxxxxxf"
+```
+
+#### Sample request
+```curl
+Copiedcurl "https://www.zohoapis.com/crm/v8/Project_Details/search?criteria=Expected_Budget:greater_equal:40000"
+-X GET
+-H "Authorization: Zoho-oauthtoken 1000.8cb99dxxxxxxxxxxxxx9be93.9b8xxxxxxxxxxxxxxxf"
+```
+
+```curl
+Copiedcurl "https://www.zohoapis.com/crm/v8/EmpXSkills/search?criteria=((Secondary_Email:equals:patricia@mail.com)and(Skills:equals:Content_Marketing))"
+-X GET
+-H "Authorization: Zoho-oauthtoken 1000.8cb99dxxxxxxxxxxxxx9be93.9b8xxxxxxxxxxxxxxxf"
+```
+
+Returning records using Email as criteria
+  URL: https://help.zoho.com/portal/en/community/topic/returning-records-using-email-as-criteria
+  In order to perform search based on email, search or COQL API can be used. Please find the help documentations for the same mentioned below.
+
+Zoho CRM Developer Series: Zoho CRM APIs – Part 6: Mastering COQL
+  URL: https://www.youtube.com/watch?v=_Jr2ur1wlqo
+  In this session, we dive deep into COQL (CRM Object Query Language) — a powerful query language that helps you retrieve CRM data with precision ...

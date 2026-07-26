@@ -76,6 +76,21 @@ class Deal:
         return datetime.fromisoformat(value).date() if value else None
 
     @property
+    def id(self):
+        return self.raw.get("id")
+
+    @property
+    def name(self):
+        return self.raw.get("Deal_Name") or "(unnamed deal)"
+
+    @property
+    def account_name(self):
+        account = self.raw.get("Account_Name")
+        if isinstance(account, dict):
+            return account.get("name")
+        return account
+
+    @property
     def owner(self):
         user = self.raw.get("Owner") or {}
         return user.get("name") or user.get("email") or "(unknown)"

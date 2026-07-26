@@ -1,0 +1,88 @@
+Get Contact Roles of a Specific Deal | Zoho CRM API | V8
+  URL: https://www.zoho.com/crm/developer/docs/api/v8/get-contact-roles-of-a-specific-deal.html
+  Get the details of contact roles of a specific deal through this Zoho CRM API in V8. To get the details of contact roles associated with a specific deal ...
+
+Get Related Records | Zoho CRM API | V8
+  URL: https://www.zoho.com/crm/developer/docs/api/v8/get-related-records.html
+  - Core APIs
+  - Records
+    - Contact Roles
+      - [GETContact Roles](https://www.zoho.com/crm/developer/docs/api/v8/get-contact-roles.html)
+      - [GETContact Roles of a Specific Deal](https://www.zoho.com/crm/developer/docs/api/v8/get-contact-roles-of-a-specific-deal.html)
+
+# Related Records Data
+### Request Details
+#### Sample Request
+```curl
+Copiedcurl "https://www.zohoapis.com/crm/v8/Leads/4876876000000376008/Notes?fields=Owner,Parent_Id"
+-X GET
+-H "Authorization: Zoho-oauthtoken 1000.8cb99dxxxxxxxxxxxxx9be93.9b8xxxxxxxxxxxxxxxf"
+```
+
+Zoho API - Set contact role
+  URL: https://help.zoho.com/portal/en/community/topic/zoho-api-set-contact-role
+  CONTACTID in the API will set the Key Contact of the Potential or Deal, not add many Contacts as roles. to a contact associated with a Deal.
+
+Kaizen #67 - Email the contact roles of a deal using ...
+  URL: https://help.zoho.com/portal/en/community/topic/kaizen-67-email-the-contact-roles-of-a-deal-using-functions
+  The Contact Roles related list allows you to link multiple contacts to a single deal and specify their role in the deal.
+
+Update Contact Roles - Zoho CRM API
+  URL: https://www.zoho.com/crm/developer/docs/api/v8/update-contact-roles.html
+  - Core APIs
+  - Records
+    - Contact Roles
+      - [GETContact Roles](https://www.zoho.com/crm/developer/docs/api/v8/get-contact-roles.html)
+      - [GETContact Roles of a Specific Deal](https://www.zoho.com/crm/developer/docs/api/v8/get-contact-roles-of-a-specific-deal.html)
+
+# Update Contact Roles
+### Request Details
+#### Sample Request
+```curl
+Copiedcurl "https://www.zohoapis.com/crm/v8/Contacts/roles"
+-X PUT
+-d "@updatecontactroles.json"
+-H "Authorization: Zoho-oauthtoken 1000.8cb99dxxxxxxxxxxxxx9be93.9b8xxxxxxxxxxxxxxxf"
+```
+
+#### Sample Input
+```json
+Copied{
+    "contact_roles": [\
+        {\
+            "name": "Sales Lead",\
+            "sequence_number": 5,\
+             "id": "4150868000003611011"\
+        },\
+        {\
+            "name": "Quality Control",\
+            "sequence_number": 6,\
+            "id": "4150868000003611012"\
+        }\
+    ]
+}
+```
+
+#### Sample Response
+```json
+Copied{
+    "contact_roles": [\
+        {\
+            "code": "SUCCESS",\
+            "details": {\
+                "id": "4150868000003611011"\
+            },\
+            "message": "record updated",\
+            "status": "success"\
+        },\
+        {\
+            "code": "SUCCESS",\
+            "details": {\
+                "id": "4150868000003611012"\
+            },\
+            "message": "record updated",\
+            "status": "success"\
+        }\
+    ]
+}
+```

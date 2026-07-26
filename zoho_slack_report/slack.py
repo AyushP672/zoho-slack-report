@@ -9,6 +9,6 @@ class SlackNotifier:
 
     def post(self, message):
         if not self.webhook_url:
-            raise SystemExit("SLACK_WEBHOOK is not set in the environment/.env")
+            raise SystemExit("Slack webhook URL is not set in the environment/.env")
         r = requests.post(self.webhook_url, json={"text": message}, timeout=30)
         r.raise_for_status()

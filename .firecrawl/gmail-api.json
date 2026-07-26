@@ -1,0 +1,64 @@
+Perform Google Workspace domain-wide delegation of authority
+  URL: https://developers.google.com/workspace/cloud-search/docs/guides/delegation
+  # Perform Google Workspace domain-wide delegation of authority    Stay organized with collections      Save and categorize content based on your preferences.
+## Instantiate a Cloud Search API service object
+```
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+
+# Path to the Service Account's Private Key file
+SERVICE_ACCOUNT_FILE_PATH = "/path/to/key.json"
+
+def create_query_api_service(user_email):
+    """Build and return a Cloud Search service object.
+
+    Args:
+        user_email: The email of the user to impersonate.
+    Returns:
+        Cloud Search Query API service object.
+    """
+    credentials = service_account.Credentials.from_service_account_file(
+        SERVICE_ACCOUNT_FILE_PATH,
+        scopes=['https://www.googleapis.com/auth/cloud_search.query'])
+
+    delegated_credentials = credentials.with_subject(user_email)
+
+    return build("cloudsearch", "v1", credentials=delegated_credentials)
+```
+
+Can Google API domain-wide delegation service accounts enable ...
+  URL: https://stackoverflow.com/questions/34388817/can-google-api-domain-wide-delegation-service-accounts-enable-gmail-push-through
+  # [Can Google API domain-wide delegation service accounts enable gmail push through impersonating a user?](https://stackoverflow.com/questions/34388817/can-google-api-domain-wide-delegation-service-accounts-enable-gmail-push-through)
+```
+    credentials = oauth2client.SignedJwtAssertionCredentials(secret['client_email'], secret['private_key'], ['https://www.googleapis.com/auth/gmail.modify'], sub='accountToImpersonate@domain.com')
+
+    http = httplib2.Http()
+    credentials.authorize(http)
+
+    return discovery.build('gmail', 'v1', http=http)
+```
+
+```
+  request = {
+    'labelIds': ['INBOX'],
+    'topicName': 'projects/projectName/topics/topicName'
+  }
+
+  gmail.users().watch(userId='me', body=request).execute()
+```
+
+Calls to other gmail API methods (list messages, etc.) are successful.
+
+Control API access with domain-wide delegation | Apps & integrations
+  URL: https://knowledge.workspace.google.com/admin/apps/control-api-access-with-domain-wide-delegation
+  In the Google Admin console, go to Menu and then · Click Add new. · Enter the Client ID for either the service account or the OAuth 2.0 client. · Click Authorize.
+
+Issues calling Gmail API : r/gsuite
+  URL: https://www.reddit.com/r/gsuite/comments/15suanb/issues_calling_gmail_api/
+  The Gmail API itself does not have any concept of delegation. Use service account domain-wide delegation authentication to act as the exact user ...
+
+Gmail API Service Account & Domain-Wide Delegation: The 2026 Guide for ...
+  URL: https://www.unipile.com/gmail-api-service-account-domain-wide-delegation/
+  # List emails from a linked Gmail or Outlook account
+## Gmail API Service Account & DWD FAQ
+AcceptDecline

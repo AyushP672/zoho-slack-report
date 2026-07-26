@@ -4,6 +4,8 @@ import os
 from dotenv import load_dotenv
 
 from .deals_report import build_deals_message
+from .email_notes import build_email_notes_slack_message, sync_email_notes
+from .gmail_client import GmailClient
 from .leads_report import LeadsReport
 from .partners_report import build_partner_message
 from .slack import SlackNotifier
@@ -52,6 +54,27 @@ def build_report_message(args):
     ).build_message()
 
 
+def run_email_notes(dry_run=False):
+    zoho = ZohoClient.from_env()
+    gmail = GmailClient.from_env()
+    stats = sync_email_notes(zoho, gmail, dry_run=dry_run)
+    message = build_email_notes_slack_message(stats)
+    print(message)
+
+    if dry_run:
+        print("\n(dry-run: not writing Zoho notes or posting to Slack)")
+        return
+
+    webhook = os.environ.get("SLACK_WEBHOOK_INDRANI", "").strip()
+    if not webhook:
+        raise SystemExit(
+            "SLACK_WEBHOOK_INDRANI is not set in the environment/.env "
+            "(required for email notes review summary)"
+        )
+    SlackNotifier(webhook).post(message)
+    print("\nPosted review summary to Indrani's Slack.")
+
+
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="Generate Zoho CRM reports for Slack.")
     report_group = parser.add_mutually_exclusive_group()
@@ -70,6 +93,14 @@ def parse_args(argv=None):
         action="store_true",
         help="Alias for --partners (legacy flag).",
     )
+    report_group.add_argument(
+        "--email-notes",
+        action="store_true",
+        help=(
+            "Sync last-24h Gmail (sid@) into Zoho Deal Notes and post "
+            "a review summary to Indrani's Slack webhook."
+        ),
+    )
     parser.add_argument(
         "--daily",
         action="store_true",
@@ -78,7 +109,7 @@ def parse_args(argv=None):
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Print the report without posting to Slack.",
+        help="Print the report without posting to Slack (or writing notes for --email-notes).",
     )
     return parser.parse_args(argv)
 
@@ -86,6 +117,11 @@ def parse_args(argv=None):
 def main(argv=None):
     load_dotenv()
     args = parse_args(argv)
+
+    if args.email_notes:
+        run_email_notes(dry_run=args.dry_run)
+        return
+
     message = build_report_message(args)
     print(message)
 
