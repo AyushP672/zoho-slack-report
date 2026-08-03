@@ -11,7 +11,7 @@ class ZohoClient:
     ACCOUNTS_URL = "https://accounts.zoho.in"
     API_BASE = "https://www.zohoapis.in"
     LEAD_FIELDS = (
-        "Full_Name,Owner,Lead_Status,Remarks,"
+        "Full_Name,Email,Company,Converted,Owner,Lead_Status,Remarks,"
         "Created_Time,Created_By,Modified_Time,Modified_By"
     )
     DEAL_FIELDS = (
@@ -85,6 +85,20 @@ class ZohoClient:
 
     def fetch_leads(self):
         return [Lead(rec) for rec in self._fetch_records("Leads", self.LEAD_FIELDS)]
+
+    def fetch_lead(self, lead_id):
+        """Fetch a single Lead (used to read converted Deal id when needed)."""
+        r = requests.get(
+            f"{self.API_BASE}/crm/v7/Leads/{lead_id}",
+            headers=self._headers(),
+            params={"fields": self.LEAD_FIELDS},
+            timeout=30,
+        )
+        if r.status_code == 204:
+            return None
+        r.raise_for_status()
+        data = (r.json().get("data") or [None])[0]
+        return Lead(data) if data else None
 
     def fetch_deals(self):
         return [Deal(rec) for rec in self._fetch_records("Deals", self.DEAL_FIELDS)]

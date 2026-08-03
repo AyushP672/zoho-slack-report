@@ -2,8 +2,8 @@ name: Email Deal Notes Sync
 
 on:
   schedule:
-    # 02:30 UTC == 8:00 AM IST, Monday through Friday
-    - cron: "30 2 * * 1-5"
+    # 18:30 UTC == 00:00 IST, every day
+    - cron: "30 18 * * *"
   workflow_dispatch: {}
 
 jobs:
@@ -24,4 +24,5 @@ jobs:
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
-          SLACK_WEBHOOK_INDRANI: ${{ secrets.SLACK_WEBHOOK_INDRANI }}
+          GMAIL_GROUP: ${{ secrets.GMAIL_GROUP }}
+          SLACK_WEBHOOK_DEALS: ${{ secrets.SLACK_WEBHOOK_DEALS }}

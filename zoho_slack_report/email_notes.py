@@ -1,43 +1,29 @@
+import os
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from .config import IST
+from .deal_match import (
+    DealEmailIndex,
+    external_emails_from,
+    note_has_marker,
+    truncate_body,
+    truncate_note_title,
+)
 from .time_windows import trailing_24_hours
 
-INTERNAL_DOMAINS = {"breatheesg.com"}
-FREE_MAIL_DOMAINS = {
-    "gmail.com",
-    "googlemail.com",
-    "yahoo.com",
-    "yahoo.co.in",
-    "outlook.com",
-    "hotmail.com",
-    "icloud.com",
-    "me.com",
-    "live.com",
-    "proton.me",
-    "protonmail.com",
-    "aol.com",
-    "mail.com",
-    "ymail.com",
-    "rediffmail.com",
-}
-NOTE_BODY_MAX = 4000
-NOTE_TITLE_MAX = 100
-MIN_DEAL_NAME_LEN = 4
+DEFAULT_SID_EMAIL = "sid@breatheesg.com"
 
 
-def _domain(email_addr):
-    if not email_addr or "@" not in email_addr:
-        return ""
-    return email_addr.rsplit("@", 1)[-1].lower()
+def sid_email_from_env():
+    return (os.environ.get("GMAIL_GROUP") or DEFAULT_SID_EMAIL).strip().lower()
 
 
-def _is_external(email_addr, mailbox):
-    addr = (email_addr or "").lower()
-    if not addr or addr == mailbox:
+def involves_sid(message, sid_email):
+    """True if Sid is on To or Cc (sales mail; skip ayush-only personal)."""
+    sid = (sid_email or "").strip().lower()
+    if not sid:
         return False
-    return _domain(addr) not in INTERNAL_DOMAINS
+    return sid in (message.to_emails or []) or sid in (message.cc_emails or [])
 
 
 def _gmail_marker(message_id):
@@ -45,16 +31,11 @@ def _gmail_marker(message_id):
 
 
 def _note_title(subject):
-    title = f"Email: {subject or '(no subject)'}"
-    if len(title) <= NOTE_TITLE_MAX:
-        return title
-    return title[: NOTE_TITLE_MAX - 1] + "…"
+    return truncate_note_title("Email: ", subject or "(no subject)")
 
 
 def _note_content(message, match_method, confidence):
-    body = (message.body_text or "").strip()
-    if len(body) > NOTE_BODY_MAX:
-        body = body[: NOTE_BODY_MAX - 1] + "…"
+    body = truncate_body(message.body_text)
     parts = [
         _gmail_marker(message.message_id),
         f"From: {message.from_header}",
@@ -66,15 +47,6 @@ def _note_content(message, match_method, confidence):
         body,
     ]
     return "\n".join(p for p in parts if p is not None)
-
-
-@dataclass
-class MatchResult:
-    deal_id: str
-    deal_name: str
-    method: str  # contact | domain | subject
-    confidence: str  # ok | ambiguous
-    matched_email: str = ""
 
 
 @dataclass
@@ -123,150 +95,34 @@ class SyncStats:
         return len(self.unmatched)
 
 
-class DealEmailIndex:
-    """Maps contact emails / domains / deal names to deals for matching."""
-
-    def __init__(self, deals_by_id, email_to_deals, domain_to_deals):
-        self.deals_by_id = deals_by_id
-        self.email_to_deals = email_to_deals
-        self.domain_to_deals = domain_to_deals
-
-    @classmethod
-    def build(cls, zoho, deals):
-        deals_by_id = {d.id: d for d in deals if d.id}
-        email_to_deals = {}
-        domain_to_deals = {}
-
-        for deal in deals:
-            if not deal.id:
-                continue
-            roles = zoho.fetch_deal_contact_roles(deal.id)
-            for role in roles:
-                email_addr = (role.get("Email") or "").strip().lower()
-                if not email_addr or "@" not in email_addr:
-                    continue
-                email_to_deals.setdefault(email_addr, set()).add(deal.id)
-                dom = _domain(email_addr)
-                if dom and dom not in FREE_MAIL_DOMAINS and dom not in INTERNAL_DOMAINS:
-                    domain_to_deals.setdefault(dom, set()).add(deal.id)
-
-        return cls(deals_by_id, email_to_deals, domain_to_deals)
-
-    def _pick_deal(self, deal_ids):
-        """Prefer open deals; among those, latest Modified_Time. Returns (deal, ambiguous)."""
-        deals = [self.deals_by_id[i] for i in deal_ids if i in self.deals_by_id]
-        if not deals:
-            return None, False
-        open_deals = [d for d in deals if d.is_open]
-        pool = open_deals or deals
-        pool.sort(
-            key=lambda d: d.modified_at or datetime.min.replace(tzinfo=IST),
-            reverse=True,
-        )
-        return pool[0], len(pool) > 1
-
-    def match(self, message, external_emails):
-        # 1) Contact email exact match
-        contact_hits = set()
-        matched_email = ""
-        for addr in external_emails:
-            if addr in self.email_to_deals:
-                contact_hits |= self.email_to_deals[addr]
-                if not matched_email:
-                    matched_email = addr
-        if contact_hits:
-            deal, ambiguous = self._pick_deal(contact_hits)
-            if deal:
-                return MatchResult(
-                    deal_id=deal.id,
-                    deal_name=deal.name,
-                    method="contact",
-                    confidence="ambiguous" if ambiguous else "ok",
-                    matched_email=matched_email,
-                )
-
-        # 2) Domain unique open-deal match
-        domain_hits = set()
-        for addr in external_emails:
-            dom = _domain(addr)
-            if not dom or dom in FREE_MAIL_DOMAINS or dom in INTERNAL_DOMAINS:
-                continue
-            domain_hits |= self.domain_to_deals.get(dom, set())
-            if not matched_email:
-                matched_email = addr
-        if domain_hits:
-            open_ids = {
-                i
-                for i in domain_hits
-                if i in self.deals_by_id and self.deals_by_id[i].is_open
-            }
-            if len(open_ids) == 1:
-                deal_id = next(iter(open_ids))
-                deal = self.deals_by_id[deal_id]
-                return MatchResult(
-                    deal_id=deal.id,
-                    deal_name=deal.name,
-                    method="domain",
-                    confidence="ok",
-                    matched_email=matched_email,
-                )
-
-        # 3) Deal_Name substring in subject — unique open deal only
-        subject = (message.subject or "").lower()
-        if subject:
-            name_hits = []
-            for deal in self.deals_by_id.values():
-                if not deal.is_open:
-                    continue
-                name = (deal.name or "").strip()
-                if len(name) < MIN_DEAL_NAME_LEN:
-                    continue
-                if name.lower() in subject:
-                    name_hits.append(deal)
-            if len(name_hits) == 1:
-                deal = name_hits[0]
-                return MatchResult(
-                    deal_id=deal.id,
-                    deal_name=deal.name,
-                    method="subject",
-                    confidence="ok",
-                )
-
-        return None
-
-
 def external_participants(message, mailbox):
-    return [e for e in message.all_emails if _is_external(e, mailbox)]
+    return external_emails_from(message.all_emails, owner_email=mailbox)
 
 
 def note_already_exists(notes, message_id):
-    marker = _gmail_marker(message_id)
-    for note in notes:
-        content = note.get("Note_Content") or ""
-        if marker in content:
-            return True
-    return False
+    return note_has_marker(notes, _gmail_marker(message_id))
 
 
 def sync_email_notes(zoho, gmail, dry_run=False):
     """Fetch last-24h mail, match to deals, create notes. Returns SyncStats."""
     start, end = trailing_24_hours()
     stats = SyncStats(start=start, end=end)
-    mailbox = gmail.user_email
+    sid_email = sid_email_from_env()
 
-    messages = gmail.fetch_messages_since(start)
-    deals = zoho.fetch_deals()
-    index = DealEmailIndex.build(zoho, deals)
+    messages = gmail.fetch_messages_since(start, sales_email=sid_email)
+    index = DealEmailIndex.build(zoho)
 
-    # Cache notes per deal to avoid re-fetching within a run
     notes_cache = {}
 
     for message in messages:
-        externals = external_participants(message, mailbox)
+        if not involves_sid(message, sid_email):
+            continue
+
+        externals = external_participants(message, sid_email)
         if not externals:
             continue
 
-        match = index.match(message, externals)
+        match = index.match(message.subject, externals)
         if not match:
             stats.unmatched.append(
                 UnmatchedItem(
@@ -360,6 +216,8 @@ def build_email_notes_slack_message(stats):
 
     lines.append("")
     lines.append(
-        "Please confirm logged notes look right; fix Contact Roles on unmatched deals for next run."
+        "Please confirm logged notes look right. For unmatched items, update "
+        "the contact person on the relevant Zoho deal (Deal Contact Roles / Lead Email) "
+        "so the next run can match them."
     )
     return "\n".join(lines)

@@ -131,13 +131,20 @@ class GmailClient:
         self._service = build("gmail", "v1", credentials=creds, cache_discovery=False)
         return self._service
 
-    def fetch_messages_since(self, start):
-        """List and fully fetch messages with internal date >= start (aware datetime)."""
+    def fetch_messages_since(self, start, sales_email=None):
+        """List and fully fetch messages with internal date >= start (aware datetime).
+
+        If sales_email is set, narrow the Gmail query to To/Cc that address (Sid).
+        Callers should still post-filter for correctness.
+        """
         service = self._service_client()
         # Gmail after: is epoch seconds; inclusive of that day in practice — we
         # also filter by internalDate below for a precise trailing window.
         after_epoch = int(start.timestamp())
         query = f"after:{after_epoch}"
+        sales = (sales_email or "").strip().lower()
+        if sales:
+            query = f"{query} (to:{sales} OR cc:{sales})"
         message_refs = []
         page_token = None
         while True:

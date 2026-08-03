@@ -1,0 +1,24 @@
+name: Meeting Deal Notes Sync
+
+on:
+  schedule:
+    # 02:45 UTC == 8:15 AM IST, Monday through Friday (after email-notes at 8:00)
+    - cron: "45 2 * * 1-5"
+  workflow_dispatch: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+      - run: python report.py --meeting-notes
+        env:
+          ZOHO_CLIENT_ID: ${{ secrets.ZOHO_CLIENT_ID }}
+          ZOHO_CLIENT_SECRET: ${{ secrets.ZOHO_CLIENT_SECRET }}
+          ZOHO_REFRESH_TOKEN: ${{ secrets.ZOHO_REFRESH_TOKEN }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          SLACK_WEBHOOK_INDRANI: ${{ secrets.SLACK_WEBHOOK_INDRANI }}
