@@ -30,6 +30,15 @@ AE_OWNERS = [
     ("Eshan", "Eshan Aggarwal"),
     ("Karan", "Karantaj Singh"),
 ]
+
+# Meeting → Deal Notes: (Slack section header, Google Calendar email).
+CALENDAR_OWNERS = [
+    ("Jai", "jai@breatheesg.com"),
+    ("Eshan", "eshan@breatheesg.com"),
+    ("Shaayak", "shaayak@breatheesg.com"),
+    ("Aloke", "aloke@breatheesg.com"),
+    ("Karantaj", "karantaj@breatheesg.com"),
+]
 MEETING_STAGES = {"Meeting Done - SQL", "Meeting Done - Not SQL Yet"}
 CLOSED_STAGES = {
     "Closed Won",

@@ -27,6 +27,46 @@ class Lead:
         return SDR_NAME_MAP.get(name, name)
 
     @property
+    def id(self):
+        return self.raw.get("id")
+
+    @property
+    def full_name(self):
+        return (self.raw.get("Full_Name") or "").strip()
+
+    @property
+    def email(self):
+        return (self.raw.get("Email") or "").strip().lower()
+
+    @property
+    def company(self):
+        return (self.raw.get("Company") or "").strip()
+
+    @property
+    def is_converted(self):
+        value = self.raw.get("Converted")
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.strip().lower() in {"true", "yes", "1"}
+        return bool(value)
+
+    @property
+    def converted_deal_id(self):
+        """Deal id from Zoho converted-detail payloads, if present."""
+        for key in ("$converted_detail", "Converted_Detail", "converted_detail"):
+            detail = self.raw.get(key)
+            if not detail or not isinstance(detail, dict):
+                continue
+            for deal_key in ("deal", "Deal", "Deal_Name"):
+                deal = detail.get(deal_key)
+                if isinstance(deal, dict) and deal.get("id"):
+                    return deal["id"]
+                if isinstance(deal, str) and deal.strip():
+                    return deal.strip()
+        return None
+
+    @property
     def created_at(self):
         return self._time(self.raw.get("Created_Time"))
 
@@ -74,6 +114,21 @@ class Deal:
     @staticmethod
     def _date(value):
         return datetime.fromisoformat(value).date() if value else None
+
+    @property
+    def id(self):
+        return self.raw.get("id")
+
+    @property
+    def name(self):
+        return self.raw.get("Deal_Name") or "(unnamed deal)"
+
+    @property
+    def account_name(self):
+        account = self.raw.get("Account_Name")
+        if isinstance(account, dict):
+            return account.get("name")
+        return account
 
     @property
     def owner(self):

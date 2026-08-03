@@ -1,3 +1,10 @@
 .env
 __pycache__/
 *.pyc
+.venv
+*-service-account*.json
+**/service-account*.json
+*iam.gserviceaccount.com*.json
+superb-beach-*.json
+*.docx
+.firecrawl
