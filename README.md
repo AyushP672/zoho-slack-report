@@ -2,7 +2,7 @@
 
 Automatically posts SDR lead activity, partner deal stats, and AE/AD deal movement from
 Zoho CRM to a Slack channel (`#sales`), and syncs sales mail / calendar meetings into
-Zoho Deal Notes with a review summary for Indrani. Scheduled jobs run for free on
+Zoho Deal Notes with a review summary via Slack. Scheduled jobs run for free on
 GitHub Actions — no server required:
 
 | Report | Schedule | Workflow |
@@ -176,7 +176,7 @@ python report.py --email-notes --dry-run   # preview; no Zoho writes, no Slack
 python report.py --email-notes             # write notes + post via SLACK_WEBHOOK_DEALS
 ```
 
-### Sample Indrani Slack summary
+### Sample Slack summary
 
 ```
 Email → Deal Notes (24h)
@@ -200,7 +200,7 @@ Every **weekday at 8:15 AM IST**, reads the last **24 hours** of Google Calendar
 for the sales team (`CALENDAR_OWNERS` in `config.py`: Jai, Eshan, Shaayak, Aloke,
 Karantaj), matches external attendees with the **same matching rules** as email
 notes, writes an audit **Note** on the matched deal, then posts **one** review summary
-to Indrani via `SLACK_WEBHOOK_INDRANI`, grouped by AE name.
+via `SLACK_WEBHOOK_DEALS`, grouped by AE name.
 
 Notes are idempotent via `[gcal-id:…]`. Internal-only events (no external attendees) are
 skipped. Cancelled events are skipped.
@@ -210,10 +210,10 @@ scope `https://www.googleapis.com/auth/calendar.readonly` (impersonates each AE)
 
 ```bash
 python report.py --meeting-notes --dry-run   # preview; no Zoho writes, no Slack
-python report.py --meeting-notes             # write notes + post to Indrani
+python report.py --meeting-notes             # write notes + post via SLACK_WEBHOOK_DEALS
 ```
 
-### Sample Indrani Slack summary
+### Sample Slack summary
 
 ```
 Meetings → Deal Notes (24h)
@@ -300,7 +300,7 @@ Code overview (`zoho_slack_report/`):
 - `zoho.py` — auth + paginated fetch + Deal Contact Roles / Notes create.
 - `gmail_client.py` — Gmail API client for `GMAIL_USER` (optional Sid To/Cc query filter).
 - `calendar_client.py` — Calendar API via service account domain-wide delegation.
-- `email_notes.py` — match mail to deals, create notes, build Indrani Slack summary.
+- `email_notes.py` — match mail to deals, create notes, build Slack review summary.
 - `meeting_notes.py` — match calendar events to deals; Slack summary grouped by AE.
 - `leads_report.py` — aggregates leads for a window and builds the Slack message.
 - `deals_report.py` — per-AE metrics; `build_deals_message()` for weekly/daily deal reports.
@@ -323,7 +323,6 @@ ZOHO_CLIENT_SECRET=...
 ZOHO_REFRESH_TOKEN=...
 SLACK_WEBHOOK=https://hooks.slack.com/services/XXX/YYY/ZZZ
 SLACK_WEBHOOK_DEALS=https://hooks.slack.com/services/XXX/YYY/ZZZ
-SLACK_WEBHOOK_INDRANI=https://hooks.slack.com/services/XXX/YYY/ZZZ
 
 # Required for --email-notes (user OAuth on a real mailbox that receives Sid mail)
 GOOGLE_CLIENT_ID=...
@@ -356,8 +355,8 @@ python report.py --daily                # Leads Daily Report
 python report.py --deals                # Weekly Deal Report
 python report.py --deals --daily        # Daily Deal Report
 python report.py --partners             # Partners Weekly Report
-python report.py --email-notes          # Write email Deal Notes + Indrani summary
-python report.py --meeting-notes        # Write meeting Deal Notes + Indrani summary
+python report.py --email-notes          # Write email Deal Notes + Slack summary
+python report.py --meeting-notes        # Write meeting Deal Notes + Slack summary
 ```
 
 ## Zoho authentication
@@ -390,8 +389,8 @@ curl -X POST "https://accounts.zoho.in/oauth/v2/token" \
 2. **Incoming Webhooks** → toggle on → **Add New Webhook to Workspace** → choose
    `#sales` → **Allow**.
 3. Copy the webhook URL into `SLACK_WEBHOOK`.
-4. **Email notes review:** store the deals review Incoming Webhook as `SLACK_WEBHOOK_DEALS`
-   (email → Deal Notes posts here). Meeting notes still use `SLACK_WEBHOOK_INDRANI`.
+4. **Notes review:** store the deals review Incoming Webhook as `SLACK_WEBHOOK_DEALS`
+   (email and meeting → Deal Notes both post here).
 
 ## Gmail setup (Email → Deal Notes)
 
@@ -424,7 +423,7 @@ to Sid recipients via `GMAIL_GROUP`.
    `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_REFRESH_TOKEN`, `SLACK_WEBHOOK`,
    plus for notes syncs: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`,
    `GOOGLE_REFRESH_TOKEN`, `GOOGLE_SERVICE_ACCOUNT_JSON`, `SLACK_WEBHOOK_DEALS`,
-   `SLACK_WEBHOOK_INDRANI`, `GMAIL_USER`, and optionally `GMAIL_GROUP`.
+   `GMAIL_USER`, and optionally `GMAIL_GROUP`.
 3. Workflows run on schedule (see table at top). Use the **Actions** tab to
    trigger any report on demand via **Run workflow**:
    - [leads-weekly-report.yml](.github/workflows/leads-weekly-report.yml) — Friday 5:00 PM IST

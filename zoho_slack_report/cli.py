@@ -56,22 +56,12 @@ def build_report_message(args):
     ).build_message()
 
 
-def _indrani_webhook():
-    webhook = os.environ.get("SLACK_WEBHOOK_INDRANI", "").strip()
-    if not webhook:
-        raise SystemExit(
-            "SLACK_WEBHOOK_INDRANI is not set in the environment/.env "
-            "(required for notes review summary)"
-        )
-    return webhook
-
-
 def _deals_webhook():
     webhook = os.environ.get("SLACK_WEBHOOK_DEALS", "").strip()
     if not webhook:
         raise SystemExit(
             "SLACK_WEBHOOK_DEALS is not set in the environment/.env "
-            "(required for email notes review summary)"
+            "(required for notes review summary)"
         )
     return webhook
 
@@ -102,8 +92,8 @@ def run_meeting_notes(dry_run=False):
         print("\n(dry-run: not writing Zoho notes or posting to Slack)")
         return
 
-    SlackNotifier(_indrani_webhook()).post(message)
-    print("\nPosted review summary to Indrani's Slack.")
+    SlackNotifier(_deals_webhook()).post(message)
+    print("\nPosted review summary to Slack (SLACK_WEBHOOK_DEALS).")
 
 
 def parse_args(argv=None):
@@ -129,7 +119,7 @@ def parse_args(argv=None):
         action="store_true",
         help=(
             "Sync last-24h Gmail into Zoho Deal Notes and post "
-            "a review summary to Indrani's Slack webhook."
+            "a review summary via SLACK_WEBHOOK_DEALS."
         ),
     )
     report_group.add_argument(
@@ -137,7 +127,7 @@ def parse_args(argv=None):
         action="store_true",
         help=(
             "Sync last-24h Google Calendar meetings for the sales team into "
-            "Zoho Deal Notes and post a name-grouped review summary to Indrani."
+            "Zoho Deal Notes and post a name-grouped review summary via SLACK_WEBHOOK_DEALS."
         ),
     )
     parser.add_argument(
