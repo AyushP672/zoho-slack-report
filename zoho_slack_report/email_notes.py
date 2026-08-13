@@ -177,7 +177,7 @@ def _fmt_window(start, end):
 
 
 def build_email_notes_slack_message(stats):
-    """Build Indrani's review summary for Slack."""
+    """Build the review summary for Slack."""
     lines = [
         "Email → Deal Notes (24h)",
         _fmt_window(stats.start, stats.end),

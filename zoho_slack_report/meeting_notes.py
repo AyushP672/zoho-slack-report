@@ -187,7 +187,7 @@ def _fmt_window(start, end):
 
 
 def build_meeting_notes_slack_message(stats):
-    """One Indrani Slack message, sections by sales-team name."""
+    """One Slack review message, sections by sales-team name."""
     lines = [
         "Meetings → Deal Notes (24h)",
         _fmt_window(stats.start, stats.end),
